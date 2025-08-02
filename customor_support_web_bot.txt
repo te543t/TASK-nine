@@ -1,0 +1,66 @@
+from flask import Flask, render_template_string, request
+
+app = Flask(__name__)
+
+responses = {
+    "delivery": "Delivery takes 2-5 business days.",
+    "return": "You can return products within 7 days after receiving them.",
+    "damaged": "We’re sorry! Please contact our support immediately for assistance.",
+    "offers": "We currently have up to 30% discounts on selected products!",
+}
+
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Support Bot</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        #chat-box { width: 100%; max-width: 600px; margin: auto; }
+        .bot { color: blue; margin: 10px 0; }
+        .user { color: green; margin: 10px 0; }
+        form { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div id="chat-box">
+        <h2>Welcome to Customer Support Bot</h2>
+        {% for message in messages %}
+            <div class="{{ message[0] }}">{{ message[1] }}</div>
+        {% endfor %}
+        <form method="post">
+            <input type="text" name="user_input" placeholder="Type your question..." autofocus style="width:80%;" required>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+</body>
+</html>
+"""
+
+chat_history = []
+
+@app.route("/", methods=["GET", "POST"])
+def chat():
+    global chat_history
+    if request.method == "POST":
+        user_input = request.form["user_input"].strip().lower()
+        chat_history.append(("user", f"You: {user_input}"))
+
+        if user_input == "exit":
+            bot_reply = "Bot: Thank you for contacting us. Goodbye!"
+            chat_history.append(("bot", bot_reply))
+        else:
+            found = False
+            for keyword, reply in responses.items():
+                if keyword in user_input:
+                    bot_reply = f"Bot: {reply}"
+                    chat_history.append(("bot", bot_reply))
+                    found = True
+                    break
+            if not found:
+                chat_history.append(("bot", "Bot: Sorry, I didn't understand your question. Please rephrase it."))
+
+    return render_template_string(HTML_TEMPLATE, messages=chat_history)
+
+if __name__ == "__main__":
+    app.run(debug=True)
